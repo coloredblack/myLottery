@@ -1,22 +1,23 @@
-import React, { useEffect, useState} from 'react';
+/**
+ * App
+ * @description: The APP Components is the highest components of the application, which defines the stage of the application process
+ */
+
+import React, { useEffect, useState } from 'react';
 //import Canvas from './Canvas';
-import TimerView, { myTimer } from './Timer';
+import Step from './scripts/steps';
+import UI from './components/UI';
+import Canvas from './components/Canvas';
 
+const App = () => {
+  const mystep = new Step();
 
-class App extends React.Component {
-  render() {
-
-    
-    return (
-      <div className="app">
-        <TimerView timer={ myTimer}/>
-      </div>
-    )
-  }
+  return (
+    <div className="app">
+      <UI step={mystep}/>
+      <Canvas step={mystep}/>
+    </div>
+  )
 }
-
-setInterval(() => {
-  myTimer.increaseTimer();
-}, 1000);
 
 export default App;
