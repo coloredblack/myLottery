@@ -18,15 +18,17 @@
     "url": "git+https://github.com/coloredblack/myLottery.git"
   },
   "keywords": [],
-  "author": "oaradise_craftsman@hotmail.com",
+  "author": "paradise_craftsman@hotmail.com",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/coloredblack/myLottery/issues"
   },
   "homepage": "https://github.com/coloredblack/myLottery#readme",
   "dependencies": {
+    "@inlet/react-pixi": "^6.6.5",
     "css-loader": "^6.2.0",
     "file-loader": "^6.2.0",
+    "pixi.js": "^6.1.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "style-loader": "^3.2.1"
@@ -40,6 +42,7 @@
     "bufferutil": "^4.0.3",
     "html-webpack-plugin": "^5.3.2",
     "path": "^0.12.7",
+    "prop-types": "^15.7.2",
     "utf-8-validate": "^5.0.5",
     "webpack": "^5.51.1",
     "webpack-cli": "^4.8.0",
