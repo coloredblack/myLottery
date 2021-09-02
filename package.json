@@ -25,7 +25,6 @@
   },
   "homepage": "https://github.com/coloredblack/myLottery#readme",
   "dependencies": {
-    "@inlet/react-pixi": "^6.6.5",
     "css-loader": "^6.2.0",
     "file-loader": "^6.2.0",
     "mobx": "^6.3.3",
