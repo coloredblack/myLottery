@@ -1,82 +1,176 @@
-import { observer } from 'mobx-react';
 import * as PIXI from 'pixi.js';
+import Star from './objects/star';
 
-let app = new PIXI.Application({
-  width: 800,
-  height: 600,
-  view: document.getElementById("my-canvas"),
-  backgroundColor: 0x000000,
-});
-
-const starTexture = PIXI.Texture.from('./assets/star.png');
-
-const starAmount = 1000;
-let cameraZ = 0;
-const fov = 20;
-const baseSpeed = 0.025;
-let speed = 0;
-let warpSpeed = 0;
-const starStretch = 5;
-const starBaseSize = 0.05;
-
-
-// Create the stars
-const stars = [];
-for (let i = 0; i < starAmount; i++) {
-    const star = {
-        sprite: new PIXI.Sprite(starTexture),
-        z: 0,
-        x: 0,
-        y: 0,
-    };
-    star.sprite.anchor.x = 0.5;
-    star.sprite.anchor.y = 0.7;
-    randomizeStar(star, true);
-    app.stage.addChild(star.sprite);
-    stars.push(star);
-}
-
-function randomizeStar(star, initial) {
-    star.z = initial ? Math.random() * 2000 : cameraZ + Math.random() * 1000 + 2000;
-
-    // Calculate star positions with radial random coordinate so no star hits the camera.
-    const deg = Math.random() * Math.PI * 2;
-    const distance = Math.random() * 50 + 1;
-    star.x = Math.cos(deg) * distance;
-    star.y = Math.sin(deg) * distance;
-}
-
-// Change flight speed every 5 seconds
-setInterval(() => {
-    warpSpeed = warpSpeed > 0 ? 0 : 1;
-}, 5000);
-
-// Listen for animate update
-app.ticker.add((delta) => {
-    // Simple easing. This should be changed to proper easing function when used for real.
-    speed += (warpSpeed - speed) / 20;
-    cameraZ += delta * 10 * (speed + baseSpeed);
-    for (let i = 0; i < starAmount; i++) {
-        const star = stars[i];
-        if (star.z < cameraZ) randomizeStar(star);
-
-        // Map star 3d position to 2d with really simple projection
-        const z = star.z - cameraZ;
-        star.sprite.x = star.x * (fov / z) * app.renderer.screen.width + app.renderer.screen.width / 2;
-        star.sprite.y = star.y * (fov / z) * app.renderer.screen.width + app.renderer.screen.height / 2;
-
-        // Calculate star scale & rotation.
-        const dxCenter = star.sprite.x - app.renderer.screen.width / 2;
-        const dyCenter = star.sprite.y - app.renderer.screen.height / 2;
-        const distanceCenter = Math.sqrt(dxCenter * dxCenter + dyCenter * dyCenter);
-        const distanceScale = Math.max(0, (2000 - z) / 2000);
-        star.sprite.scale.x = distanceScale * starBaseSize;
-        // Star is looking towards center so that y axis is towards center.
-        // Scale the star depending on how fast we are moving, what the stretchfactor is and depending on how far away it is from the center.
-        star.sprite.scale.y = distanceScale * starBaseSize + distanceScale * speed * starStretch * distanceCenter / app.renderer.screen.width;
-        star.sprite.rotation = Math.atan2(dyCenter, dxCenter) + Math.PI / 2;
+class PIXIApp {
+    app = new PIXI.Application({
+        width: 800,
+        height: 600,
+        view: document.getElementById("my-canvas"),
+        backgroundColor: 0x000000,
+    });
+    starAmount = 1000;
+    cameraZ = 0;
+    fov = 20;
+    baseSpeed = 0.025;
+    speed = 0;
+    warpSpeed = 0;
+    starStretch = 5;
+    starBaseSize = 0.0;
+    step = 0;
+    stars = [];
+    constructor() {
+        this.app.stop();
+        this.initStars();
+        this.app.loader.add('spritesheet', './assets/mc.json');
     }
-});
+    initStars() {
+        //console.log("is initalizing stars");
+        for (let i = 0; i < this.starAmount; i++) {
+            const star = new Star(this.cameraZ);  
+            //console.log(this.cameraZ);
+            this.app.stage.addChild(star.sprite);
+            this.stars.push(star);
+        }
+    }
 
+    Explosion = () => {
+        const explosionTextures = [];
+        let i;
+        for (i = 0; i < 26; i++) {
+            const texture = PIXI.Texture.from(`Explosion_Sequence_A ${i + 1}.png`);
+            explosionTextures.push(texture);
+        }
+        for (i = 0; i < 10; i++){
+            const explosion = new PIXI.AnimatedSprite(explosionTextures);
+            explosion.x = this.app.renderer.width/2 + Math.random()*100 - 50;
+            explosion.y = this.app.renderer.height/2 + Math.random()*100 - 50;
+            explosion.anchor.set(0.5);
+            explosion.rotation = Math.random()*2*Math.PI;
+            explosion.gotoAndPlay(Math.random()*26);
+            this.app.stage.addChild(explosion);
+        }
+    }
+    changeStage(step) {
+        //console.log(step);
+        switch (step) {
+            case 1: this.stageA(); break;
+            case 2: this.stageB(); break;
+            case 5: this.stageC(); break;
+            //case 5: this.stageD(); break;
+            case 6: this.showStage(); break;
+            case 7: this.reset(); break;
+            case 8: this.finish(); break;
+            default: break;
+        }
+    }
+    stageA() {
+        this.app.ticker.add(this.AHandler, this.app);
+        this.app.ticker.start();
+        //console.log(this.explosion);
+    }
+    stageB() {
+        this.app.ticker.stop();
+        this.app.ticker.remove(this.AHandler, this.app);
+        this.app.ticker.add(this.BHandler, this.app);
+        this.app.start();
+    }
+    stageC() {
+        this.app.ticker.stop();
+        this.app.ticker.remove(this.BHandler, this.app);
+        this.app.ticker.add(this.CHandler, this.app);
+        this.app.start();
+        setInterval(() => {
+            this.stageD();
+        }, 1000);
+    }
+    stageD() {
+        this.app.loader.load(this.Explosion);
+        setInterval(() => {
+            this.showStage();
+        }, 1500)
+    }
+    reset() {
+        this.app.stop();
+        this.app = new PIXI.Application({
+            width: 800,
+            height: 600,
+            view: document.getElementById("my-canvas"),
+            backgroundColor: 0x000000,
+        });
+        this.app.stop();
+    }
+    finish() {
+        this.app.stop();
+        this.app.stage.removeAllListeners();
+        this.app.stage.removeChildren();
+        this.app.ticker.destroy();
+        this.app.renderer.clear();
+    }
+    showStage() {
+        this.app.ticker.remove(this.CHandler, this.app);
 
-export default app;
+        //console.log("Time to SHow");
+        this.app.stage.removeChildren();
+        
+        const style = new PIXI.TextStyle({
+            fontFamily: 'Arial',
+            fontSize: 36,
+            fontStyle: 'italic',
+            fontWeight: 'bold',
+            fill: ['#ffffff', '#00ff99'], // gradient
+            stroke: '#4a1850',
+            strokeThickness: 5,
+            dropShadow: true,
+            dropShadowColor: '#000000',
+            dropShadowBlur: 4,
+            dropShadowAngle: Math.PI / 6,
+            dropShadowDistance: 6,
+            wordWrap: true,
+            wordWrapWidth: 440,
+            lineJoin: 'round',
+        });
+
+        const richText = new PIXI.Text('抽奖已经结束，点击下方按钮查看获奖名单', style);
+        richText.x = 50;
+        richText.y = 220;
+
+        this.app.stage.addChild(richText);
+    }
+    AHandler = (delta) => {
+        this.warpSpeed = 0;
+        this.speed += (this.warpSpeed - this.speed) / 20;
+        //console.log("A doing");
+        this.cameraZ += delta * 10 * (this.speed + this.baseSpeed);
+        this.calcStars();   
+    };
+    BHandler = (delta) => {
+        this.speed += (this.warpSpeed - this.speed) / 20;
+        this.cameraZ -= delta * 10 * (this.speed + this.baseSpeed);
+        //console.log("B doing");
+        this.calcStars();
+    }
+    CHandler = (delta) => {
+        //console.log("C is doing");
+        this.speed = 0;
+        this.centerCalcStars(delta)
+    }
+
+    centerCalcStars(delta) {
+        for (let i = 0; i < this.starAmount; i++) {
+            const star = this.stars[i];
+            star.center(delta, this.cameraZ);
+            star.proj(this.cameraZ, this.app.renderer.screen.width, this.app.renderer.screen.height, this.fov, this.speed);
+        }
+    }
+    calcStars() {
+        for (let i = 0; i < this.starAmount; i++) {
+            const star = this.stars[i];
+            star.proj(this.cameraZ, this.app.renderer.screen.width, this.app.renderer.screen.height, this.fov, this.speed);
+        }
+    }
+}
+
+const pixiApp = new PIXIApp();
+//pixiApp.app.ticker.stop();
+
+export default pixiApp;
